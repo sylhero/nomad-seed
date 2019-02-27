@@ -1,0 +1,92 @@
+image: docker:stable
+
+services:
+- docker:dind
+
+stages:
+- validate
+- deploy
+
+variables:
+  RELEASE_VERSION: "3.26"
+
+validate:
+  stage: validate
+  script:
+    - docker pull sylhero/alpine_nomad:latest
+    - chmod +x ./validate.sh
+    - ./validate.sh
+  except:
+    - master
+
+deploy_dev:
+  stage: deploy
+  script:
+    - chmod +x ./parse.sh
+    - ./parse.sh "$CI_ENVIRONMENT_NAME" "$RELEASE_VERSION" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
+    - ssh -o StrictHostKeyChecking=no root@"$NOMAD_SERVER" "cd /tmp && rm -rf jobs"
+    - scp -r nomad/jobs/"$CI_ENVIRONMENT_NAME" root@"$NOMAD_SERVER":/tmp/jobs/
+    - scp deploy.sh root@"$NOMAD_SERVER":/tmp
+    - ssh -o StrictHostKeyChecking=no root@"$NOMAD_SERVER" "cd /tmp && chmod +x deploy.sh && ./deploy.sh"
+  environment:
+    name: dev
+    url: https://dev.com
+  only:
+  - master
+
+release:
+  stage: deploy
+  script:
+    - chmod +x ./release.sh
+    - ./release.sh "$RELEASE_VERSION"
+  environment:
+    name: release
+    url: https://uat.com
+  when: manual
+  only:
+  - master
+
+deploy_qa:
+  stage: deploy
+  script:
+    - chmod +x ./parse.sh
+    - ./parse.sh "$CI_ENVIRONMENT_NAME" "$RELEASE_VERSION" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
+    - scp -r nomad/jobs/"$CI_ENVIRONMENT_NAME" root@"$NOMAD_SERVER":/tmp/jobs
+    - scp deploy.sh root@"$NOMAD_SERVER":/tmp
+    - ssh -o StrictHostKeyChecking=no root@"$NOMAD_SERVER" "cd /tmp && chmod +x deploy.sh && ./deploy.sh"
+  environment:
+    name: qa
+    url: https://qa.com
+  when: manual
+  only:
+  - master
+
+deploy_sb:
+  stage: deploy
+  script:
+    - chmod +x ./parse.sh
+    - ./parse.sh "$CI_ENVIRONMENT_NAME" "$RELEASE_VERSION" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
+    - scp -r nomad/jobs/"$CI_ENVIRONMENT_NAME" root@"$NOMAD_SERVER":/tmp/jobs
+    - scp deploy.sh root@"$NOMAD_SERVER":/tmp
+    - ssh -o StrictHostKeyChecking=no root@"$NOMAD_SERVER" "cd /tmp && chmod +x deploy.sh && ./deploy.sh"
+  environment:
+    name: sb
+    url: https://sb.com
+  when: manual
+  only:
+  - master
+
+deploy_prod:
+  stage: deploy
+  script:
+    - chmod +x ./parse.sh
+    - ./parse.sh "$CI_ENVIRONMENT_NAME" "$RELEASE_VERSION" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
+    - scp -r nomad/jobs/"$CI_ENVIRONMENT_NAME" root@"$NOMAD_SERVER":/tmp/jobs
+    - scp deploy.sh root@"$NOMAD_SERVER":/tmp
+    - ssh -o StrictHostKeyChecking=no root@"$NOMAD_SERVER" "cd /tmp && chmod +x deploy.sh && ./deploy.sh"
+  environment:
+    name: prod
+    url: https://prod.ormuco.com
+  when: manual
+  only:
+  - master

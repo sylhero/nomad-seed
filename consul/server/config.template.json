@@ -1,0 +1,33 @@
+{
+"bind_addr": "<SERVER_IP>", 
+"datacenter": "<DATA_CENTER>",
+"data_dir": "/var/consul",
+"encrypt": "<CONSUL_KEY>",
+"log_level": "INFO",
+"enable_syslog": true,
+"enable_debug": true,
+"enable_script_checks": true,
+"node_name": "<NODE_NAME>",
+"server": true,
+"check": {
+  "name": "ping",
+  "args": ["ping", "-c1", "google.com"],
+  "interval": "20s"
+},
+"service": {
+  "name": "local",
+  "port": 80,
+  "tags": ["HTTP"],
+  "check": {
+    "args": ["curl", "localhost"],
+    "interval": "10s"
+  }
+},
+"bootstrap_expect": 3,
+"leave_on_terminate": false,
+"skip_leave_on_interrupt": true,
+"rejoin_after_leave": true,
+"retry_join": [ 
+  "<CONSUL_SERVERS>"
+  ]
+}

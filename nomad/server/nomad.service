@@ -1,0 +1,11 @@
+[Unit]
+Description=Nomad
+Documentation=https://www.nomadproject.io/
+
+[Service]
+ExecStart=/usr/local/bin/nomad agent -config=/etc/nomad.d/server/server.hcl
+ExecReload=/bin/kill -HUP $MAINPID
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
